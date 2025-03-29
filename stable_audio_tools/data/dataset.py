@@ -11,6 +11,7 @@ import time
 import torch
 import torchaudio
 import webdataset as wds
+import dill
 
 from os import path
 from torch import nn
@@ -178,7 +179,7 @@ class SampleDataset(torch.utils.data.Dataset):
             self.root_paths.append(config.path)
             self.filenames.extend(get_audio_filenames(config.path, keywords))
             if config.custom_metadata_fn is not None:
-                self.custom_metadata_fns[config.path] = config.custom_metadata_fn
+                self.custom_metadata_fns[config.path] = dill.dumps(config.custom_metadata_fn)
 
         print(f'Found {len(self.filenames)} files')
 
@@ -238,8 +239,8 @@ class SampleDataset(torch.utils.data.Dataset):
 
             for custom_md_path in self.custom_metadata_fns.keys():
                 if custom_md_path in audio_filename:
-                    custom_metadata_fn = self.custom_metadata_fns[custom_md_path]
-                    custom_metadata = custom_metadata_fn(info, audio)
+                    custom_metadata_fn_deserialised = dill.loads(self.custom_metadata_fns[custom_md_path])
+                    custom_metadata = custom_metadata_fn_deserialised(info, audio)
                     info.update(custom_metadata)
 
                 if "__reject__" in info and info["__reject__"]:
